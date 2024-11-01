@@ -1,20 +1,17 @@
 Opnsense zabbix template based on API
 
-Easy to use:
-import a template in zabbix
-in opnsense web GUI: system/Access/user
-select your active admin user
-click + to generate a KEY file
-
-import a template in a host
-set this macro:
+Easy to use:  
+- import this template into zabbix  
+- in opnsense web GUI: system/Access/user  
+- select your active admin user  
+- click + to generate a KEY file  
+- associate this template in a host
+- set this macro:
+```
 {$APIKEY}  : key in a download file
 {$APISECRET}   : secrete in a download file
 {$BASEURL}    : firewall url like http://127.0.0.1:8443
-
-BUG: 
-
-TO DO:
+```
 
 
 changelog:
