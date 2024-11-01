@@ -1,21 +1,24 @@
-Opnsense zabbix template based on API
+# Zabbix Template for OPNsense leveraging it's API  
 
 Easy to use:  
 - import this template into zabbix  
-- in opnsense web GUI: system/Access/user  
-- select your active admin user  
+- in opnsense web GUI access System/Access/User  
+- create a new user (no admin rights needed)  
 - click + to generate a KEY file  
-- associate this template in a host
-- set this macro:
+- associate this template to a zabbix host
+- set the following macros:
 ```
-{$APIKEY}  : key in a download file
-{$APISECRET}   : secrete in a download file
-{$BASEURL}    : firewall url like http://127.0.0.1:8443
+{$APIKEY}    : key from the downloaded file
+{$APISECRET} : secret from the downloaded file
+{$BASEURL}   : firewall url like https://127.0.0.1:8443 - no leading '/'
 ```
 
 
-changelog:
-2024-02-15: Template atualizado e implementado o monitoramento via API do OPNSense.
-2024-03-10: repositório novo sem herdar código legado do rbicelli.
+changelog:  
+2024-02-15: updated template to leverate the api.  
+2024-03-10: no more dependency on legacy plugin from rbicelli to pfsense.   
+
+
+Remember: Open Source is free as in speech, not as in beer.
 
 
