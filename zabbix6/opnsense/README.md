@@ -1,6 +1,6 @@
 # Zabbix Template for OPNsense leveraging it's API  
 
-Easy to use:  
+How to use:  
 - import this template into zabbix  
 - in opnsense web GUI access System/Access/User  
 - create a new user (no admin rights needed)  
