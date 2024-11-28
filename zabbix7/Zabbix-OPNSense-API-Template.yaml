@@ -1,0 +1,850 @@
+zabbix_export:
+  version: '6.4'
+  template_groups:
+    - uuid: 36bff6c29af64692839d077febfc7079
+      name: 'Templates/Network devices'
+  templates:
+    - uuid: c856c5fdba7e44d9a1a287b0ff94c433
+      template: OPNSENSE-BY-API
+      name: OPNSENSE-BY-API
+      groups:
+        - name: 'Templates/Network devices'
+      items:
+        - uuid: 6d87b7459607448fbd6d2ec2fd44e1f3
+          name: 'Current Firmware Version'
+          type: DEPENDENT
+          key: opnsense.firmware.current
+          delay: '0'
+          history: 30d
+          trends: '0'
+          value_type: CHAR
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - ''
+            - type: JSONPATH
+              parameters:
+                - $.product.product_version
+          master_item:
+            key: opnsense.firmware.status
+        - uuid: b590fde958314341ac4b951c34ba0456
+          name: 'Firmware Latest'
+          type: DEPENDENT
+          key: opnsense.firmware.latest
+          delay: '0'
+          history: 30d
+          trends: '0'
+          value_type: CHAR
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - ''
+            - type: JSONPATH
+              parameters:
+                - $.product.product_latest
+          master_item:
+            key: opnsense.firmware.status
+        - uuid: 70e1f07d5cd041a0ba3b48d643a46139
+          name: 'Get Firmware Status'
+          type: HTTP_AGENT
+          key: opnsense.firmware.status
+          delay: 1h
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - ''
+          timeout: 10s
+          url: '{$BASEURL}/api/core/firmware/status'
+        - uuid: ff720ef670694acd834db3e8d69d2de0
+          name: 'Get Gateways Status'
+          type: HTTP_AGENT
+          key: opnsense.gateways.status
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - ''
+          timeout: 10s
+          url: '{$BASEURL}/api/routes/gateway/status'
+          triggers:
+            - uuid: 777c7080ef6e4f3aaaf3bdcfc949bfa4
+              expression: 'nodata(/OPNSENSE-BY-API/opnsense.gateways.status,3m)=1'
+              name: '{HOST.HOST}: Unavailable over API'
+              priority: AVERAGE
+              description: 'Firewall became unreachable by http api'
+        - uuid: a3b49d187b9341ba96255ca671b53d4e
+          name: 'Get Interfaces'
+          type: HTTP_AGENT
+          key: 'opnsense.interfaces.get[names]'
+          delay: 5m
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - ''
+          timeout: 5s
+          url: '{$BASEURL}/api/diagnostics/interface/getInterfaceNames'
+        - uuid: 9d9b53b496c14b8eb31138ccc7020beb
+          name: 'Get IPSec Tunnels'
+          type: HTTP_AGENT
+          key: opnsense.ipsec.tunnels
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - ''
+          timeout: 10s
+          url: '{$BASEURL}/api/ipsec/sessions/searchPhase1'
+        - uuid: 3066565299434e9b9dbfa7dfee6f9712
+          name: 'Get OpenVPN Statistics'
+          type: HTTP_AGENT
+          key: opnsense.openvpn.statistics
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - ''
+          timeout: 10s
+          url: '{$BASEURL}/api/openvpn/service/searchSessions'
+        - uuid: 419871d2614649dc87a088b2d60ba943
+          name: 'Get Services'
+          type: HTTP_AGENT
+          key: opnsense.service.get
+          history: 1d
+          trends: '0'
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - ''
+          timeout: 5s
+          url: '{$BASEURL}/api/core/service/search'
+      discovery_rules:
+        - uuid: 6d12368211f64235a719c734cdde06ec
+          name: 'Gateways Discovery'
+          type: DEPENDENT
+          key: opnsense.gateway.discovery
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            - uuid: 48bde6b0e032459c8d5f558eb8f90cf7
+              name: 'Gateway {#GWNAME} Address'
+              type: DEPENDENT
+              key: 'opnsense.gateway.get[{#GWNAME}, address]'
+              delay: '0'
+              trends: '0'
+              value_type: CHAR
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["items"]) {
+                          if(input["items"][i]["name"] == "{#GWNAME}"){
+                              return input["items"][i]["address"];
+                          }
+                      }
+              master_item:
+                key: opnsense.gateways.status
+              trigger_prototypes:
+                - uuid: bac7234301624efc90ec590159b97dbd
+                  expression: 'change(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME}, address])=1'
+                  name: '{HOST.HOST}: Gateway {#GWNAME} address changed'
+                  priority: WARNING
+            - uuid: 8781228217fd4311beaf28e8ecc74788
+              name: 'Gateway {#GWNAME} Delay'
+              type: DEPENDENT
+              key: 'opnsense.gateway.get[{#GWNAME},delay]'
+              delay: '0'
+              value_type: FLOAT
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["items"]) {
+                          if(input["items"][i]["name"] == "{#GWNAME}"){
+                              return input["items"][i]["delay"] == "~" ? "0" : input["items"][i]["delay"];
+                          }
+                      }
+                - type: RTRIM
+                  parameters:
+                    - 'ms ~'
+              master_item:
+                key: opnsense.gateways.status
+            - uuid: 7cce16df73634e7baf7cc7f690bfd16d
+              name: 'Gateway {#GWNAME} Loss'
+              type: DEPENDENT
+              key: 'opnsense.gateway.get[{#GWNAME},loss]'
+              delay: '0'
+              value_type: FLOAT
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["items"]) {
+                          if(input["items"][i]["name"] == "{#GWNAME}"){
+                              return input["items"][i]["loss"] == "~" ? "0" : input["items"][i]["loss"];
+                          }
+                      }
+                - type: TRIM
+                  parameters:
+                    - '% ~'
+              master_item:
+                key: opnsense.gateways.status
+            - uuid: ef193b6f2fc54e259201dbe4dfdea5ba
+              name: 'Gateway {#GWNAME} Status'
+              type: DEPENDENT
+              key: 'opnsense.gateway.get[{#GWNAME},status]'
+              delay: '0'
+              valuemap:
+                name: 'Gateway Status'
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      var map = {"Online": 0, "Packetloss": 1, "Latency": 2, "Latency, Packetloss": 3, "Offline": 4, "Offline (forced)": 5, "Pending": 6}
+                      var iret = -1;
+                      for(var i in input["items"]) {
+                          if(input["items"][i]["name"] == "{#GWNAME}"){
+                              iret = map[input["items"][i]["status_translated"]];
+                              break;
+                          }
+                      }
+                      return iret;
+              master_item:
+                key: opnsense.gateways.status
+              tags:
+                - tag: Application
+                  value: Gateways
+              trigger_prototypes:
+                - uuid: 4c9c0274c10b488891f858a97769b0a7
+                  expression: 'avg(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME},status],1m)=4'
+                  name: '{HOST.HOST}: Gateway {#GWNAME} is down'
+                  priority: WARNING
+                - uuid: cab4fecf581d4846a28d9e22cf01a1ac
+                  expression: 'avg(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME},status],1m)=2'
+                  name: '{HOST.HOST}: Gateway {#GWNAME} with delay'
+                  priority: WARNING
+                - uuid: 36eda2c369414033a2adeba2068416e9
+                  expression: 'avg(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME},status],1m)=3'
+                  name: '{HOST.HOST}: Gateway {#GWNAME} with delay and loss'
+                  priority: WARNING
+                - uuid: cbf7c5cf056641d6a4fd164a146d868f
+                  expression: 'avg(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME},status],1m)=1'
+                  name: '{HOST.HOST}: Gateway {#GWNAME} with packet loss'
+                  priority: WARNING
+            - uuid: fcdd1f2d9c674f1b9fb7e6e368f88ba8
+              name: 'Gateway {#GWNAME} Stddev'
+              type: DEPENDENT
+              key: 'opnsense.gateway.get[{#GWNAME},stddev]'
+              delay: '0'
+              value_type: FLOAT
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["items"]) {
+                          if(input["items"][i]["name"] == "{#GWNAME}"){
+                              return input["items"][i]["stddev"] == "~" ? "0" : input["items"][i]["stddev"];
+                          }
+                      }
+                - type: TRIM
+                  parameters:
+                    - 'ms ~'
+              master_item:
+                key: opnsense.gateways.status
+          graph_prototypes:
+            - uuid: f564416905ed442e968928ce0f2b55e3
+              name: 'Gateway {#GWNAME} Delay'
+              graph_items:
+                - drawtype: FILLED_REGION
+                  color: BFFF00
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'opnsense.gateway.get[{#GWNAME},delay]'
+            - uuid: 3d4e3403d19645a2bff59d9a01a180c1
+              name: 'Gateway {#GWNAME} Loss'
+              graph_items:
+                - drawtype: FILLED_REGION
+                  color: FF8000
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'opnsense.gateway.get[{#GWNAME},loss]'
+            - uuid: a7cd9e754ffe430cb8c5be7031dc70c1
+              name: 'Gateway {#GWNAME} Stddev'
+              graph_items:
+                - drawtype: FILLED_REGION
+                  color: 4000FF
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'opnsense.gateway.get[{#GWNAME},stddev]'
+          master_item:
+            key: opnsense.gateways.status
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  var output = {"data": new Array()};
+                  for(var i in input["items"]) {
+                      output["data"].push({
+                          "{#GWNAME}": input["items"][i]["name"]
+                      });
+                  }
+                  return JSON.stringify(output);
+        - uuid: f388859818ef4add9286abdfede3db5f
+          name: 'Interfaces Discovery'
+          type: DEPENDENT
+          key: opnsense.if.discovery
+          delay: '0'
+          filter:
+            conditions:
+              - macro: '{#IFNAME}'
+                value: lo0|openvpn|enc0
+                operator: NOT_MATCHES_REGEX
+                formulaid: A
+          lifetime: 7d
+          item_prototypes:
+            - uuid: 06c3fb36ef064a0697a6179ff92f873c
+              name: 'Ingress traffic on interface {#IFALIAS}'
+              key: 'net.if.in[{#IFNAME},]'
+              units: Bps
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+            - uuid: cc0951c383eb44dc9797397e12459bcf
+              name: 'Egress traffic on interface {#IFALIAS}'
+              key: 'net.if.out[{#IFNAME},]'
+              units: Bps
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+          graph_prototypes:
+            - uuid: 5b0f583730e04c0a9ff933a097b2b8e2
+              name: 'Egress Traffic on interface {#IFALIAS}'
+              graph_items:
+                - color: FFBF00
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'net.if.out[{#IFNAME},]'
+            - uuid: 3aea0e72aab4425c8a59fc0194d0c3dc
+              name: 'Ingress Traffic on interface {#IFALIAS}'
+              graph_items:
+                - drawtype: GRADIENT_LINE
+                  color: 1A7C11
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'net.if.in[{#IFNAME},]'
+          master_item:
+            key: 'opnsense.interfaces.get[names]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  var output = {"data": new Array()};
+                  for(var i in input){
+                      output["data"].push({
+                          "{#IFNAME}": i,
+                          "{#IFALIAS}": input[i]
+                      });
+                  }
+                  return JSON.stringify(output);
+        - uuid: 96d080a1cb2c47f5a19b1b6f9d5a98b4
+          name: 'IPSec Discovery'
+          type: DEPENDENT
+          key: 'opnsense.ipsec.discovery[instances]'
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            - uuid: 5dfbe85269984de8a8f8767c633f1f40
+              name: 'IPSec Tunnel {#IPSECDESC} ingress traffic'
+              type: DEPENDENT
+              key: 'openvpn.ipsec.in[{#IPSECDESC}]'
+              delay: '0'
+              units: Bps
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      bytes_count = 0;
+                      for(var i in input["rows"]) {
+                          var tunnel_id = "{#IPSECIKEID}";
+                          if( tunnel_id == input["rows"][i]["ikeid"]) {
+                              bytes_count += input["rows"][i]["bytes-in"];
+                          }
+                      }
+                      return bytes_count;
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              master_item:
+                key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
+            - uuid: 5b2e0ac751f34609aea6cc62c23e03cc
+              name: 'IPSec Tunnel {#IPSECDESC} egress traffic'
+              type: DEPENDENT
+              key: 'openvpn.ipsec.out[{#IPSECDESC}]'
+              delay: '0'
+              units: Bps
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      bytes_count = 0;
+                      for(var i in input["rows"]) {
+                          var tunnel_id = "{#IPSECNAME}";
+                          if( tunnel_id == input["rows"][i]["ikeid"]) {
+                              bytes_count += input["rows"][i]["bytes-out"];
+                          }
+                      }
+                      return bytes_count;
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              master_item:
+                key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
+            - uuid: 794aab3de9184cf884bc33ec9749aa8d
+              name: 'IPSec Tunnel {#IPSECDESC} Phase2 status'
+              type: DEPENDENT
+              key: 'openvpn.ipsec.p2status[{#IPSECDESC}]'
+              delay: '0'
+              valuemap:
+                name: 'IPSec Tunnel Status'
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      installed = 0;
+                      installed_missing = 1;
+                      p2_status = installed_missing;
+                      for(var i in input["rows"]) {
+                          var tunnel_id = "{#IPSECIKEID}"
+                          if(tunnel_id == input["rows"][i]["ikeid"]) {
+                              p2_status = input["rows"][i]["state"] == "INSTALLED" ? installed : installed_missing;
+                          }
+                      }
+                      return p2_status;
+              master_item:
+                key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
+              trigger_prototypes:
+                - uuid: a894f7cb387748faa2357394ce54da97
+                  expression: 'avg(/OPNSENSE-BY-API/openvpn.ipsec.p2status[{#IPSECDESC}],3m)<>0'
+                  name: '{HOST.HOST}: IPSec Tunnel {#IPSECDESC} Phase2 not connected'
+                  priority: AVERAGE
+            - uuid: 849e04b54e544769bde5a4c5c857a54b
+              name: 'IPSec Tunnel {#IPSECDESC} Phase 2 Statistics'
+              type: HTTP_AGENT
+              key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
+              history: 1d
+              trends: '0'
+              value_type: TEXT
+              authtype: BASIC
+              username: '{$APIKEY}'
+              password: '{$APISECRET}'
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+              timeout: 5s
+              url: '{$BASEURL}/api/ipsec/sessions/search_phase2'
+              posts: |
+                {
+                    "id": "{#IPSECNAME}"
+                }
+              post_type: JSON
+              request_method: POST
+            - uuid: 0bcb1496eb784d8cba37b568bcd0a421
+              name: 'IPSec Tunnel {#IPSECDESC} Status'
+              type: DEPENDENT
+              key: 'opnsense.ipsec.status[{#IPSECDESC}]'
+              delay: '0'
+              valuemap:
+                name: 'IPSec Tunnel Status'
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      var connected = 0;
+                      var disconnected = 1;
+                      for(var i in input["rows"]) {
+                          var tunnel_id = "{#IPSECIKEID}";
+                          if( tunnel_id == input["rows"][i]["ikeid"]){
+                              return input["rows"][i]["connected"] == true ? connected  : disconnected ;
+                          }
+                      }
+              master_item:
+                key: opnsense.ipsec.tunnels
+              trigger_prototypes:
+                - uuid: 1cd3354ce6c6400aaf8b4c96357f674d
+                  expression: 'avg(/OPNSENSE-BY-API/opnsense.ipsec.status[{#IPSECDESC}],3m)<>0'
+                  name: '{HOST.HOST}: IPSec Tunnel {#IPSECDESC} not connected'
+                  priority: AVERAGE
+          graph_prototypes:
+            - uuid: b8dd6b2a000a4231b56d5aa557e549f1
+              name: 'IPSec Tunnel {#IPSECDESC} Egress Traffic'
+              graph_items:
+                - drawtype: FILLED_REGION
+                  color: 1A7C11
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'openvpn.ipsec.out[{#IPSECDESC}]'
+            - uuid: 06053b69e4d14b5cb1c2c2b8597edb95
+              name: 'IPSec Tunnel {#IPSECDESC} Ingress Traffic'
+              graph_items:
+                - drawtype: FILLED_REGION
+                  color: 0040FF
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'openvpn.ipsec.in[{#IPSECDESC}]'
+          master_item:
+            key: opnsense.ipsec.tunnels
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  var output = {"data": new Array()};
+                  for(var i in input["rows"]) {
+                  	output["data"].push({
+                  		"{#IPSECNAME}": input["rows"][i]["name"],
+                  		"{#IPSECIKEID}": input["rows"][i]["ikeid"],
+                  		"{#IPSECDESC}": input["rows"][i]["phase1desc"],
+                  		"{#IPSECCONN}": input["rows"][i]["connected"]
+                  	});
+                  }
+                  return JSON.stringify(output);
+        - uuid: 82a57ed98cb54412be4c832eb121c155
+          name: 'OpenVPN Discovery'
+          type: DEPENDENT
+          key: 'opnsense.openvpn.discovery[instances]'
+          delay: '0'
+          lifetime: 7d
+          item_prototypes:
+            - uuid: 18acc75effc24cc682de46d10c71cab5
+              name: 'OpenVPN {#VPNROLE} {#VPNDESC} ingress traffic'
+              type: DEPENDENT
+              key: 'opnsense.openvpn.in[{#VPNDESC}]'
+              delay: '0'
+              units: bps
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                          if("{#VPNDESC}" == input["rows"][i]["description"] ){
+                              return input["rows"][i]["bytes_received"];
+                          }
+                      }
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              master_item:
+                key: opnsense.openvpn.statistics
+            - uuid: d57d89177f2a40cb928755f963c6f717
+              name: 'OpenVPN {#VPNROLE} {#VPNDESC} egress traffic'
+              type: DEPENDENT
+              key: 'opnsense.openvpn.out[{#VPNDESC}]'
+              delay: '0'
+              units: bps
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                          if("{#VPNDESC}" == input["rows"][i]["description"] ){
+                              return input["rows"][i]["bytes_sent"];
+                          }
+                      }
+                - type: CHANGE_PER_SECOND
+                  parameters:
+                    - ''
+              master_item:
+                key: opnsense.openvpn.statistics
+            - uuid: 1e2738e93ccb4cc580017824e2736691
+              name: 'OpenVPN {#VPNROLE} {#VPNDESC} status'
+              type: DEPENDENT
+              key: 'opnsense.openvpn.status[{#VPNDESC}]'
+              delay: '0'
+              valuemap:
+                name: 'OpenVPN Status'
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                          if("{#VPNDESC}" == input["rows"][i]["description"] ){
+                              switch(input["rows"][i]["status"]){
+                                  case "ok":
+                                      return 0;
+                                      break;
+                                  case "connected":
+                                      return 1;
+                                      break;
+                                  case "auth":
+                                      return 2;
+                                      break;
+                                  case "failed":
+                                      return 3;
+                                      break;
+                                  case "reconnecting":
+                                      return 4;
+                                      break;
+                                  case "wait":
+                                      return 5;
+                                      break;
+                                  case "null":
+                                      return 6;
+                                      break;
+                                  default:
+                                      return 7;
+                              }
+                          }
+                      }
+              master_item:
+                key: opnsense.openvpn.statistics
+              trigger_prototypes:
+                - uuid: 24c4c795345d464795b840fd26559db2
+                  expression: 'min(/OPNSENSE-BY-API/opnsense.openvpn.status[{#VPNDESC}],3m)=2'
+                  name: '{HOST.HOST}: OpenVPN {#VPNROLE} {#VPNDESC} Disconnected'
+                  priority: AVERAGE
+                  tags:
+                    - tag: component
+                      value: vpn
+                    - tag: equipment
+                      value: firewall
+                    - tag: product
+                      value: opnsense
+          graph_prototypes:
+            - uuid: 02f44021b16f448ba7de292aca57e398
+              name: 'OpenVPN {#VPNROLE} {#VPNDESC} Egress Traffic'
+              graph_items:
+                - drawtype: FILLED_REGION
+                  color: FF4000
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'opnsense.openvpn.out[{#VPNDESC}]'
+            - uuid: fbd5001ab6224b90b7e7b2e3a24ce660
+              name: 'OpenVPN {#VPNROLE} {#VPNDESC} Ingress Traffic'
+              graph_items:
+                - drawtype: FILLED_REGION
+                  color: 1A7C11
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'opnsense.openvpn.in[{#VPNDESC}]'
+          master_item:
+            key: opnsense.openvpn.statistics
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  var output = {"data": new Array()};
+                  for(var i in input["rows"]) {
+                  	output["data"].push({
+                  		"{#VPNDESC}": input["rows"][i]["description"],
+                  		"{#VPNROLE}": input["rows"][i]["type"]
+                  	});
+                  
+                  }
+                  return JSON.stringify(output);
+        - uuid: f22dd398c83b4b8599d016d639811b76
+          name: 'Services Discovery'
+          type: DEPENDENT
+          key: opnsense.service.discovery
+          delay: '0'
+          filter:
+            conditions:
+              - macro: '{#SVCNAME}'
+                value: iperf
+                operator: NOT_MATCHES_REGEX
+                formulaid: A
+          lifetime: 7d
+          item_prototypes:
+            - uuid: a8a28b1888c548c1995424170a67280e
+              name: 'Service {#SVCNAME} Status'
+              type: DEPENDENT
+              key: 'opnsense.service.status[{#SVCNAME}]'
+              delay: '0'
+              valuemap:
+                name: 'Service Status'
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - ''
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                          if("{#SVCNAME}" == input["rows"][i]["name"]){
+                              return input["rows"][i]["running"];
+                          }
+                      }
+              master_item:
+                key: opnsense.service.get
+              trigger_prototypes:
+                - uuid: 12379ec34f674c07a37f2307744727d5
+                  expression: 'avg(/OPNSENSE-BY-API/opnsense.service.status[{#SVCNAME}], 3m)<>1'
+                  name: '{HOST.HOST}: Service {#SVCNAME} is stopped'
+                  priority: WARNING
+          master_item:
+            key: opnsense.service.get
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  var output = {"data": new Array()};
+                  for(var i in input["rows"]){
+                      output["data"].push({
+                          "{#SVCNAME}": input["rows"][i]["name"]
+                      });
+                  }
+                  return JSON.stringify(output);
+      macros:
+        - macro: '{$APIKEY}'
+          value: 'api key comes here'
+        - macro: '{$APISECRET}'
+          value: 'api secret comes here'
+        - macro: '{$BASEURL}'
+          value: 'firewall url like http://127.0.0.1:8443'
+      valuemaps:
+        - uuid: 9505857b9b4340a29222ee79348bbd2f
+          name: 'Gateway Status'
+          mappings:
+            - value: '0'
+              newvalue: online
+            - value: '1'
+              newvalue: loss
+            - value: '2'
+              newvalue: delay
+            - value: '3'
+              newvalue: delay+loss
+            - value: '4'
+              newvalue: down
+            - value: '5'
+              newvalue: force_down
+        - uuid: e456b49d84c74ffc83d10f658f4b7fd5
+          name: 'IPSec Tunnel Status'
+          mappings:
+            - value: '0'
+              newvalue: connected
+            - type: DEFAULT
+              newvalue: disconnected
+        - uuid: 512b933c3f144785acd8272e77dd6fe8
+          name: 'OpenVPN Status'
+          mappings:
+            - value: '0'
+              newvalue: ok
+            - value: '1'
+              newvalue: connected
+            - value: '2'
+              newvalue: auth
+            - value: '3'
+              newvalue: failed
+            - value: '4'
+              newvalue: reconnecting
+            - value: '5'
+              newvalue: wait
+            - value: '6'
+              newvalue: disconnected
+            - value: '7'
+              newvalue: unknown
+        - uuid: 3871d4e1a58947a8ba5e86add21e3aed
+          name: 'Service Status'
+          mappings:
+            - value: '1'
+              newvalue: running
+            - newvalue: stopped
+  triggers:
+    - uuid: 65237821f48d491da7d84ab8c5d20217
+      expression: 'last(/OPNSENSE-BY-API/opnsense.firmware.current) <> last(/OPNSENSE-BY-API/opnsense.firmware.latest)'
+      name: '{HOST.HOST}: New firmware update available'
+      priority: INFO
