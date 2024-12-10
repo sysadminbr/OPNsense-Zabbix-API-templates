@@ -22,6 +22,9 @@ zabbix_export:
             - type: CHECK_NOT_SUPPORTED
               parameters:
                 - ''
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value.split(''.'').slice(0, 2).join(''.'');'
             - type: JSONPATH
               parameters:
                 - $.product.product_version
