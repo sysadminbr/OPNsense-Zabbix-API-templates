@@ -22,12 +22,12 @@ zabbix_export:
             - type: CHECK_NOT_SUPPORTED
               parameters:
                 - ''
-            - type: JAVASCRIPT
-              parameters:
-                - 'return value.split(''.'').slice(0, 2).join(''.'');'
             - type: JSONPATH
               parameters:
                 - $.product.product_version
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value.split(''.'').slice(0, 2).join(''.'');'
           master_item:
             key: opnsense.firmware.status
         - uuid: b590fde958314341ac4b951c34ba0456
@@ -45,6 +45,9 @@ zabbix_export:
             - type: JSONPATH
               parameters:
                 - $.product.product_latest
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value.split(''.'').slice(0, 2).join(''.'');'
           master_item:
             key: opnsense.firmware.status
         - uuid: 70e1f07d5cd041a0ba3b48d643a46139
