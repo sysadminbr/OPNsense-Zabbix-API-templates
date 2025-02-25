@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '6.4'
+  version: '7.0'
   template_groups:
     - uuid: 36bff6c29af64692839d077febfc7079
       name: 'Templates/Network devices'
@@ -10,18 +10,39 @@ zabbix_export:
       groups:
         - name: 'Templates/Network devices'
       items:
+        - uuid: 6afa850efe1a459b82a0d670f70acf8e
+          name: 'Audit Logs'
+          type: ZABBIX_ACTIVE
+          key: 'log[/var/log/audit/latest.log,"[aA]uthenticat(e|ed|ion)",,,skip,,,,]'
+          history: 90d
+          value_type: LOG
+          trends: '0'
+          logtimefmt: 'yyyy-MM-ddphh:mm:ss-pp:pp'
+        - uuid: 6ffb56576ada4f22855098b9aee7f509
+          name: 'OpenVPN User Connections'
+          type: ZABBIX_ACTIVE
+          key: 'log[/var/log/openvpn/latest.log,"Connection Initiated",,,skip,,,,]'
+          history: 90d
+          value_type: LOG
+          trends: '0'
+          logtimefmt: 'yyyy-MM-ddphh:mm:ss-pp:pp'
+          preprocessing:
+            - type: REGEX
+              parameters:
+                - '([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}):\d+ \[(.*)\] Peer Connection Initiated'
+                - 'user \2 connected from address \1'
         - uuid: 6d87b7459607448fbd6d2ec2fd44e1f3
           name: 'Current Firmware Version'
           type: DEPENDENT
           key: opnsense.firmware.current
           delay: '0'
           history: 30d
-          trends: '0'
           value_type: CHAR
+          trends: '0'
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
             - type: JSONPATH
               parameters:
                 - $.product.product_version
@@ -36,12 +57,12 @@ zabbix_export:
           key: opnsense.firmware.latest
           delay: '0'
           history: 30d
-          trends: '0'
           value_type: CHAR
+          trends: '0'
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
             - type: JSONPATH
               parameters:
                 - $.product.product_latest
@@ -56,15 +77,15 @@ zabbix_export:
           key: opnsense.firmware.status
           delay: 1h
           history: 1d
-          trends: '0'
           value_type: TEXT
+          trends: '0'
           authtype: BASIC
           username: '{$APIKEY}'
           password: '{$APISECRET}'
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
           timeout: 10s
           url: '{$BASEURL}/api/core/firmware/status'
         - uuid: ff720ef670694acd834db3e8d69d2de0
@@ -72,15 +93,15 @@ zabbix_export:
           type: HTTP_AGENT
           key: opnsense.gateways.status
           history: 1d
-          trends: '0'
           value_type: TEXT
+          trends: '0'
           authtype: BASIC
           username: '{$APIKEY}'
           password: '{$APISECRET}'
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
           timeout: 10s
           url: '{$BASEURL}/api/routes/gateway/status'
           triggers:
@@ -95,15 +116,15 @@ zabbix_export:
           key: 'opnsense.interfaces.get[names]'
           delay: 5m
           history: 1d
-          trends: '0'
           value_type: TEXT
+          trends: '0'
           authtype: BASIC
           username: '{$APIKEY}'
           password: '{$APISECRET}'
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
           timeout: 5s
           url: '{$BASEURL}/api/diagnostics/interface/getInterfaceNames'
         - uuid: 9d9b53b496c14b8eb31138ccc7020beb
@@ -111,15 +132,15 @@ zabbix_export:
           type: HTTP_AGENT
           key: opnsense.ipsec.tunnels
           history: 1d
-          trends: '0'
           value_type: TEXT
+          trends: '0'
           authtype: BASIC
           username: '{$APIKEY}'
           password: '{$APISECRET}'
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
           timeout: 10s
           url: '{$BASEURL}/api/ipsec/sessions/searchPhase1'
         - uuid: 3066565299434e9b9dbfa7dfee6f9712
@@ -127,15 +148,15 @@ zabbix_export:
           type: HTTP_AGENT
           key: opnsense.openvpn.statistics
           history: 1d
-          trends: '0'
           value_type: TEXT
+          trends: '0'
           authtype: BASIC
           username: '{$APIKEY}'
           password: '{$APISECRET}'
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
           timeout: 10s
           url: '{$BASEURL}/api/openvpn/service/searchSessions'
         - uuid: 419871d2614649dc87a088b2d60ba943
@@ -143,15 +164,15 @@ zabbix_export:
           type: HTTP_AGENT
           key: opnsense.service.get
           history: 1d
-          trends: '0'
           value_type: TEXT
+          trends: '0'
           authtype: BASIC
           username: '{$APIKEY}'
           password: '{$APISECRET}'
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
           timeout: 5s
           url: '{$BASEURL}/api/core/service/search'
       discovery_rules:
@@ -160,19 +181,19 @@ zabbix_export:
           type: DEPENDENT
           key: opnsense.gateway.discovery
           delay: '0'
-          lifetime: 7d
+          enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 48bde6b0e032459c8d5f558eb8f90cf7
               name: 'Gateway {#GWNAME} Address'
               type: DEPENDENT
               key: 'opnsense.gateway.get[{#GWNAME}, address]'
               delay: '0'
-              trends: '0'
               value_type: CHAR
+              trends: '0'
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -198,7 +219,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -222,7 +243,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -247,7 +268,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -292,7 +313,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -360,7 +381,7 @@ zabbix_export:
                 value: lo0|openvpn|enc0
                 operator: NOT_MATCHES_REGEX
                 formulaid: A
-          lifetime: 7d
+          enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 06c3fb36ef064a0697a6179ff92f873c
               name: 'Ingress traffic on interface {#IFALIAS}'
@@ -416,7 +437,7 @@ zabbix_export:
           type: DEPENDENT
           key: 'opnsense.ipsec.discovery[instances]'
           delay: '0'
-          lifetime: 7d
+          enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 5dfbe85269984de8a8f8767c633f1f40
               name: 'IPSec Tunnel {#IPSECDESC} ingress traffic'
@@ -427,7 +448,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -454,7 +475,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -482,7 +503,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -503,28 +524,30 @@ zabbix_export:
                 - uuid: a894f7cb387748faa2357394ce54da97
                   expression: 'avg(/OPNSENSE-BY-API/openvpn.ipsec.p2status[{#IPSECDESC}],3m)<>0'
                   name: '{HOST.HOST}: IPSec Tunnel {#IPSECDESC} Phase2 not connected'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: AVERAGE
             - uuid: 849e04b54e544769bde5a4c5c857a54b
               name: 'IPSec Tunnel {#IPSECDESC} Phase 2 Statistics'
               type: HTTP_AGENT
               key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
               history: 1d
-              trends: '0'
               value_type: TEXT
+              trends: '0'
               authtype: BASIC
               username: '{$APIKEY}'
               password: '{$APISECRET}'
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
               timeout: 5s
               url: '{$BASEURL}/api/ipsec/sessions/search_phase2'
+              post_type: JSON
               posts: |
                 {
                     "id": "{#IPSECNAME}"
                 }
-              post_type: JSON
               request_method: POST
             - uuid: 0bcb1496eb784d8cba37b568bcd0a421
               name: 'IPSec Tunnel {#IPSECDESC} Status'
@@ -536,7 +559,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -555,6 +578,8 @@ zabbix_export:
                 - uuid: 1cd3354ce6c6400aaf8b4c96357f674d
                   expression: 'avg(/OPNSENSE-BY-API/opnsense.ipsec.status[{#IPSECDESC}],3m)<>0'
                   name: '{HOST.HOST}: IPSec Tunnel {#IPSECDESC} not connected'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: AVERAGE
           graph_prototypes:
             - uuid: b8dd6b2a000a4231b56d5aa557e549f1
@@ -597,7 +622,7 @@ zabbix_export:
           type: DEPENDENT
           key: 'opnsense.openvpn.discovery[instances]'
           delay: '0'
-          lifetime: 7d
+          enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 18acc75effc24cc682de46d10c71cab5
               name: 'OpenVPN {#VPNROLE} {#VPNDESC} ingress traffic'
@@ -608,14 +633,18 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
                       var input = JSON.parse(value);
                       for(var i in input["rows"]){
                           if("{#VPNDESC}" == input["rows"][i]["description"] ){
-                              return input["rows"][i]["bytes_received"];
+                              if( typeof input["rows"][i]["bytes_received"] !== 'undefined'){
+                                  return input["rows"][i]["bytes_received"];
+                              }else{
+                                  return 0;
+                              }
                           }
                       }
                 - type: CHANGE_PER_SECOND
@@ -632,14 +661,18 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
                       var input = JSON.parse(value);
                       for(var i in input["rows"]){
                           if("{#VPNDESC}" == input["rows"][i]["description"] ){
-                              return input["rows"][i]["bytes_sent"];
+                              if( typeof input["rows"][i]["bytes_sent"] !== 'undefined'){
+                                  return input["rows"][i]["bytes_sent"];
+                              }else{
+                                  return 0;
+                              }
                           }
                       }
                 - type: CHANGE_PER_SECOND
@@ -657,7 +690,7 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
@@ -748,10 +781,10 @@ zabbix_export:
           filter:
             conditions:
               - macro: '{#SVCNAME}'
-                value: iperf
+                value: '^(?:dpinger.*|iperf)$'
                 operator: NOT_MATCHES_REGEX
                 formulaid: A
-          lifetime: 7d
+          enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: a8a28b1888c548c1995424170a67280e
               name: 'Service {#SVCNAME} Status'
@@ -763,13 +796,13 @@ zabbix_export:
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
-                    - ''
+                    - '-1'
                 - type: JAVASCRIPT
                   parameters:
                     - |
                       var input = JSON.parse(value);
                       for(var i in input["rows"]){
-                          if("{#SVCNAME}" == input["rows"][i]["name"]){
+                          if("{#SVCNAME}" == input["rows"][i]["id"]){
                               return input["rows"][i]["running"];
                           }
                       }
@@ -790,10 +823,12 @@ zabbix_export:
                   var output = {"data": new Array()};
                   for(var i in input["rows"]){
                       output["data"].push({
-                          "{#SVCNAME}": input["rows"][i]["name"]
+                          "{#SVCNAME}": input["rows"][i]["id"]
                       });
                   }
                   return JSON.stringify(output);
+                  
+                  
       macros:
         - macro: '{$APIKEY}'
           value: 'api key comes here'
