@@ -629,7 +629,7 @@ zabbix_export:
               type: DEPENDENT
               key: 'opnsense.openvpn.in[{#VPNDESC}]'
               delay: '0'
-              units: bps
+              units: Bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
@@ -657,7 +657,7 @@ zabbix_export:
               type: DEPENDENT
               key: 'opnsense.openvpn.out[{#VPNDESC}]'
               delay: '0'
-              units: bps
+              units: Bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
