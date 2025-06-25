@@ -184,6 +184,22 @@ zabbix_export:
                 - '-1'
           timeout: 5s
           url: '{$BASEURL}/api/core/service/search'
+        - uuid: 381ec8a82e15406a8e3d719577cca698
+          name: 'Get Interface Statistics'
+          type: HTTP_AGENT
+          key: 'opnsense.interface.statistics'
+          history: 1d
+          value_type: TEXT
+          trends: '0'
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 5s
+          url: '{$BASEURL}/api/diagnostics/interface/getInterfaceStatistics'          
         - uuid: cf1cb489a13c4646b5ed22ffde38970e
           name: 'CPU idle time'
           key: 'system.cpu.util[,idle]'
@@ -428,42 +444,127 @@ zabbix_export:
           filter:
             conditions:
               - macro: '{#IFNAME}'
-                value: lo0|openvpn|enc0
+                value: lo0|openvpn|enc0|pfsync0|pflog0
                 operator: NOT_MATCHES_REGEX
                 formulaid: A
           enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 06c3fb36ef064a0697a6179ff92f873c
               name: 'Ingress traffic on interface {#IFALIAS}'
-              key: 'net.if.in[{#IFNAME},]'
-              units: Bps
+              type: DEPENDENT
+              key: 'opnsense.interface.traffic.in[{#IFNAME}]'
+              delay: '0'
+              units: bps  # Changed from Bps to bps (bits per second)
               preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - '-1'
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      var ifname = "{#IFNAME}";
+                      var totalBytes = 0;
+                      
+                      // Search through all interface entries
+                      for (var key in input.statistics) {
+                          var entry = input.statistics[key];
+                          
+                          // Match by hardware interface name
+                          if (entry.name === ifname) {
+                              // Only sum entries with MAC addresses (physical layer stats)
+                              if (key.indexOf("/") > -1 && key.indexOf(":") > -1) {
+                                  totalBytes += parseFloat(entry["received-bytes"] || 0);
+                              }
+                          }
+                      }
+                      
+                      return totalBytes;
                 - type: CHANGE_PER_SECOND
                   parameters:
                     - ''
+                - type: MULTIPLIER  # ADD THIS: Convert bytes to bits
+                  parameters:
+                    - '8'
+              master_item:
+                key: 'opnsense.interface.statistics'
+
+            # EGRESS traffic - fixed with bits conversion  
             - uuid: cc0951c383eb44dc9797397e12459bcf
               name: 'Egress traffic on interface {#IFALIAS}'
-              key: 'net.if.out[{#IFNAME},]'
-              units: Bps
+              type: DEPENDENT
+              key: 'opnsense.interface.traffic.out[{#IFNAME}]'
+              delay: '0'
+              units: bps  # Changed from Bps to bps (bits per second)
               preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - '-1'
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      var ifname = "{#IFNAME}";
+                      var totalBytes = 0;
+                      
+                      // Search through all interface entries
+                      for (var key in input.statistics) {
+                          var entry = input.statistics[key];
+                          
+                          // Match by hardware interface name
+                          if (entry.name === ifname) {
+                              // Only sum entries with MAC addresses (physical layer stats)
+                              if (key.indexOf("/") > -1 && key.indexOf(":") > -1) {
+                                  totalBytes += parseFloat(entry["sent-bytes"] || 0);
+                              }
+                          }
+                      }
+                      
+                      return totalBytes;
                 - type: CHANGE_PER_SECOND
                   parameters:
                     - ''
+                - type: MULTIPLIER  # ADD THIS: Convert bytes to bits
+                  parameters:
+                    - '8'
+              master_item:
+                key: 'opnsense.interface.statistics'
           master_item:
-            key: 'opnsense.interfaces.get[names]'
+            key: 'opnsense.interface.statistics'
           preprocessing:
             - type: JAVASCRIPT
               parameters:
                 - |
                   var input = JSON.parse(value);
                   var output = {"data": new Array()};
-                  for(var i in input){
-                      output["data"].push({
-                          "{#IFNAME}": i,
-                          "{#IFALIAS}": input[i]
-                      });
+                  var interfaces = {};
+                  
+                  // Extract unique interfaces from the statistics
+                  for (var key in input.statistics) {
+                      var entry = input.statistics[key];
+                      var ifname = entry.name;
+                      
+                      // Skip loopback and virtual interfaces
+                      if (ifname && ifname !== "lo0" && ifname !== "enc0" && ifname !== "pfsync0" && ifname !== "pflog0") {
+                          // Extract logical name from the key (e.g., "[WAN]", "[LAN_103]")
+                          var alias = ifname;
+                          var match = key.match(/^\[([^\]]+)\]/);
+                          if (match) {
+                              alias = match[1];
+                          }
+                          
+                          // Only add unique interfaces
+                          if (!interfaces[ifname]) {
+                              interfaces[ifname] = alias;
+                              output["data"].push({
+                                  "{#IFNAME}": ifname,
+                                  "{#IFALIAS}": alias
+                              });
+                          }
+                      }
                   }
-                  return JSON.stringify(output);
+                  
+                  return JSON.stringify(output);                
         - uuid: 96d080a1cb2c47f5a19b1b6f9d5a98b4
           name: 'IPSec Discovery'
           type: DEPENDENT
