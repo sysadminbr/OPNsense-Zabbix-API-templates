@@ -238,6 +238,13 @@ zabbix_export:
                   return 0;
           master_item:
             key: opnsense.firewall.stats
+          triggers:
+            - uuid: d641f23d13e14613af4a3a0e6ce782c9
+              expression: '(last(/OPNSENSE-BY-API/opnsense.firewall.block)-avg(/OPNSENSE-BY-API/opnsense.firewall.block,10m))/avg(/OPNSENSE-BY-API/opnsense.firewall.block,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
+              name: 'Significant increase in firewall block actions'
+              event_name: '{HOST.HOST}: Firewall block actions increased significantly: {ITEM.LASTVALUE}'
+              priority: WARNING
+              description: 'Firewall block actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
         - uuid: c702632342144c00b4937946bb852e85
           name: 'Firewall Redirect Actions'
           type: DEPENDENT
@@ -259,6 +266,13 @@ zabbix_export:
                   return 0;
           master_item:
             key: opnsense.firewall.stats
+          triggers:
+            - uuid: 69aa4a5bf4df4f78bd6643e2d1e29f99
+              expression: '(last(/OPNSENSE-BY-API/opnsense.firewall.rdr)-avg(/OPNSENSE-BY-API/opnsense.firewall.rdr,10m))/avg(/OPNSENSE-BY-API/opnsense.firewall.rdr,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
+              name: 'Significant increase in firewall redirect actions'
+              event_name: '{HOST.HOST}: Firewall redirect actions increased significantly: {ITEM.LASTVALUE}'
+              priority: INFO
+              description: 'Firewall redirect actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
         - uuid: 7cb46709b5164ab5906158164fdead93
           name: 'Firewall Pass Actions'
           type: DEPENDENT
@@ -279,7 +293,14 @@ zabbix_export:
                   }
                   return 0;
           master_item:
-            key: opnsense.firewall.stats          
+            key: opnsense.firewall.stats
+          triggers:
+            - uuid: be5a04d03e334c8d94bf6e9592edd4cd
+              expression: '(last(/OPNSENSE-BY-API/opnsense.firewall.pass)-avg(/OPNSENSE-BY-API/opnsense.firewall.pass,10m))/avg(/OPNSENSE-BY-API/opnsense.firewall.pass,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
+              name: 'Significant increase in firewall pass actions'
+              event_name: '{HOST.HOST}: Firewall pass actions increased significantly: {ITEM.LASTVALUE}'
+              priority: INFO
+              description: 'Firewall pass actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
         - uuid: cf1cb489a13c4646b5ed22ffde38970e
           name: 'CPU idle time'
           key: 'system.cpu.util[,idle]'
@@ -1012,6 +1033,9 @@ zabbix_export:
           value: 'api secret comes here'
         - macro: '{$BASEURL}'
           value: 'firewall url like http://127.0.0.1:8443'
+        - macro: '{$FIREWALL.CHANGE.THRESHOLD}'
+          value: '50'
+          description: 'Percentage threshold for firewall action changes'
       valuemaps:
         - uuid: 9505857b9b4340a29222ee79348bbd2f
           name: 'Gateway Status'
