@@ -204,6 +204,7 @@ zabbix_export:
           name: 'Get Firewall Statistics'
           type: HTTP_AGENT
           key: 'opnsense.firewall.stats'
+          delay: 10s
           history: 1d
           value_type: TEXT
           trends: '0'
@@ -215,7 +216,7 @@ zabbix_export:
               parameters:
                 - '-1'
           timeout: 5s
-          url: '{$BASEURL}/api/firewall/stats?group_by=action'
+          url: '{$BASEURL}/api/diagnostics/firewall/stats?group_by=action'
         - uuid: 8dc34c94995c4b518f6271415cbb83ef
           name: 'Firewall Block Actions'
           type: DEPENDENT
