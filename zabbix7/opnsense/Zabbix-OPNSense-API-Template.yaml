@@ -199,7 +199,86 @@ zabbix_export:
               parameters:
                 - '-1'
           timeout: 5s
-          url: '{$BASEURL}/api/diagnostics/interface/getInterfaceStatistics'          
+          url: '{$BASEURL}/api/diagnostics/interface/getInterfaceStatistics'
+        - uuid: 37a8583901e14ffb9081d0ff9511216f
+          name: 'Get Firewall Statistics'
+          type: HTTP_AGENT
+          key: 'opnsense.firewall.stats'
+          history: 1d
+          value_type: TEXT
+          trends: '0'
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 5s
+          url: '{$BASEURL}/api/firewall/stats?group_by=action'
+        - uuid: 8dc34c94995c4b518f6271415cbb83ef
+          name: 'Firewall Block Actions'
+          type: DEPENDENT
+          key: 'opnsense.firewall.block'
+          delay: '0'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  for (var i = 0; i < input.length; i++) {
+                      if (input[i].label === "block") {
+                          return input[i].value;
+                      }
+                  }
+                  return 0;
+          master_item:
+            key: opnsense.firewall.stats
+        - uuid: c702632342144c00b4937946bb852e85
+          name: 'Firewall Redirect Actions'
+          type: DEPENDENT
+          key: 'opnsense.firewall.rdr'
+          delay: '0'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  for (var i = 0; i < input.length; i++) {
+                      if (input[i].label === "rdr") {
+                          return input[i].value;
+                      }
+                  }
+                  return 0;
+          master_item:
+            key: opnsense.firewall.stats
+        - uuid: 7cb46709b5164ab5906158164fdead93
+          name: 'Firewall Pass Actions'
+          type: DEPENDENT
+          key: 'opnsense.firewall.pass'
+          delay: '0'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  for (var i = 0; i < input.length; i++) {
+                      if (input[i].label === "pass") {
+                          return input[i].value;
+                      }
+                  }
+                  return 0;
+          master_item:
+            key: opnsense.firewall.stats          
         - uuid: cf1cb489a13c4646b5ed22ffde38970e
           name: 'CPU idle time'
           key: 'system.cpu.util[,idle]'
