@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '7.0'
+  version: '7.4'
   template_groups:
     - uuid: 36bff6c29af64692839d077febfc7079
       name: 'Templates/Network devices'
@@ -37,7 +37,6 @@ zabbix_export:
           key: agent.version
           delay: 1h
           value_type: CHAR
-          trends: '0'
           preprocessing:
             - type: DISCARD_UNCHANGED_HEARTBEAT
               parameters:
@@ -53,190 +52,10 @@ zabbix_export:
           value_type: FLOAT
           units: '%'
           params: '100 - last(/{HOST.HOST}/system.cpu.util[,idle])'
-        - uuid: 6d87b7459607448fbd6d2ec2fd44e1f3
-          name: 'Firmware Version'
-          type: DEPENDENT
-          key: opnsense.firmware.current
-          delay: '0'
-          history: 30d
-          value_type: CHAR
-          trends: '0'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-            - type: JSONPATH
-              parameters:
-                - $.product.product_version
-            - type: JAVASCRIPT
-              parameters:
-                - 'return value.split(''.'').slice(0, 2).join(''.'');'
-          master_item:
-            key: opnsense.firmware.status
-        - uuid: b590fde958314341ac4b951c34ba0456
-          name: 'Firmware Latest'
-          type: DEPENDENT
-          key: opnsense.firmware.latest
-          delay: '0'
-          history: 30d
-          value_type: CHAR
-          trends: '0'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-            - type: JSONPATH
-              parameters:
-                - $.product.product_latest
-            - type: JAVASCRIPT
-              parameters:
-                - 'return value.split(''.'').slice(0, 2).join(''.'');'
-          master_item:
-            key: opnsense.firmware.status
-        - uuid: 70e1f07d5cd041a0ba3b48d643a46139
-          name: 'Get Firmware Status'
-          type: HTTP_AGENT
-          key: opnsense.firmware.status
-          delay: 1h
-          history: 1d
-          value_type: TEXT
-          trends: '0'
-          authtype: BASIC
-          username: '{$APIKEY}'
-          password: '{$APISECRET}'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-          timeout: 10s
-          url: '{$BASEURL}/api/core/firmware/status'
-        - uuid: ff720ef670694acd834db3e8d69d2de0
-          name: 'Get Gateways Status'
-          type: HTTP_AGENT
-          key: opnsense.gateways.status
-          history: 1d
-          value_type: TEXT
-          trends: '0'
-          authtype: BASIC
-          username: '{$APIKEY}'
-          password: '{$APISECRET}'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-          timeout: 10s
-          url: '{$BASEURL}/api/routes/gateway/status'
-          triggers:
-            - uuid: 777c7080ef6e4f3aaaf3bdcfc949bfa4
-              expression: 'nodata(/OPNSENSE-BY-API/opnsense.gateways.status,3m)=1'
-              name: 'Indisponível via API'
-              event_name: '{HOST.HOST}: Indisponível via API'
-              priority: AVERAGE
-              description: 'Firewall became unreachable by http api'
-              manual_close: 'YES'
-        - uuid: a3b49d187b9341ba96255ca671b53d4e
-          name: 'Get Interfaces'
-          type: HTTP_AGENT
-          key: 'opnsense.interfaces.get[names]'
-          delay: 5m
-          history: 1d
-          value_type: TEXT
-          trends: '0'
-          authtype: BASIC
-          username: '{$APIKEY}'
-          password: '{$APISECRET}'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-          timeout: 5s
-          url: '{$BASEURL}/api/diagnostics/interface/getInterfaceNames'
-        - uuid: 9d9b53b496c14b8eb31138ccc7020beb
-          name: 'Get IPSec Tunnels'
-          type: HTTP_AGENT
-          key: opnsense.ipsec.tunnels
-          history: 1d
-          value_type: TEXT
-          trends: '0'
-          authtype: BASIC
-          username: '{$APIKEY}'
-          password: '{$APISECRET}'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-          timeout: 10s
-          url: '{$BASEURL}/api/ipsec/sessions/searchPhase1'
-        - uuid: 3066565299434e9b9dbfa7dfee6f9712
-          name: 'Get OpenVPN Statistics'
-          type: HTTP_AGENT
-          key: opnsense.openvpn.statistics
-          history: 1d
-          value_type: TEXT
-          trends: '0'
-          authtype: BASIC
-          username: '{$APIKEY}'
-          password: '{$APISECRET}'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-          timeout: 10s
-          url: '{$BASEURL}/api/openvpn/service/searchSessions'
-        - uuid: 419871d2614649dc87a088b2d60ba943
-          name: 'Get Services'
-          type: HTTP_AGENT
-          key: opnsense.service.get
-          history: 1d
-          value_type: TEXT
-          trends: '0'
-          authtype: BASIC
-          username: '{$APIKEY}'
-          password: '{$APISECRET}'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-          timeout: 5s
-          url: '{$BASEURL}/api/core/service/search'
-        - uuid: 381ec8a82e15406a8e3d719577cca698
-          name: 'Get Interface Statistics'
-          type: HTTP_AGENT
-          key: 'opnsense.interface.statistics'
-          history: 1d
-          value_type: TEXT
-          trends: '0'
-          authtype: BASIC
-          username: '{$APIKEY}'
-          password: '{$APISECRET}'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-          timeout: 5s
-          url: '{$BASEURL}/api/diagnostics/interface/getInterfaceStatistics'
-        - uuid: 37a8583901e14ffb9081d0ff9511216f
-          name: 'Get Firewall Statistics'
-          type: HTTP_AGENT
-          key: 'opnsense.firewall.stats'
-          delay: 10s
-          history: 1d
-          value_type: TEXT
-          trends: '0'
-          authtype: BASIC
-          username: '{$APIKEY}'
-          password: '{$APISECRET}'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-          timeout: 5s
-          url: '{$BASEURL}/api/diagnostics/firewall/stats?group_by=action'
         - uuid: 8dc34c94995c4b518f6271415cbb83ef
           name: 'Firewall Block Actions'
           type: DEPENDENT
-          key: 'opnsense.firewall.block'
-          delay: '0'
+          key: opnsense.firewall.block
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
@@ -260,39 +79,10 @@ zabbix_export:
               event_name: '{HOST.HOST}: Firewall block actions increased significantly: {ITEM.LASTVALUE}'
               priority: WARNING
               description: 'Firewall block actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
-        - uuid: c702632342144c00b4937946bb852e85
-          name: 'Firewall Redirect Actions'
-          type: DEPENDENT
-          key: 'opnsense.firewall.rdr'
-          delay: '0'
-          preprocessing:
-            - type: CHECK_NOT_SUPPORTED
-              parameters:
-                - '-1'
-            - type: JAVASCRIPT
-              parameters:
-                - |
-                  var input = JSON.parse(value);
-                  for (var i = 0; i < input.length; i++) {
-                      if (input[i].label === "rdr") {
-                          return input[i].value;
-                      }
-                  }
-                  return 0;
-          master_item:
-            key: opnsense.firewall.stats
-          triggers:
-            - uuid: 69aa4a5bf4df4f78bd6643e2d1e29f99
-              expression: '(last(/OPNSENSE-BY-API/opnsense.firewall.rdr)-avg(/OPNSENSE-BY-API/opnsense.firewall.rdr,10m))/avg(/OPNSENSE-BY-API/opnsense.firewall.rdr,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
-              name: 'Significant increase in firewall redirect actions'
-              event_name: '{HOST.HOST}: Firewall redirect actions increased significantly: {ITEM.LASTVALUE}'
-              priority: INFO
-              description: 'Firewall redirect actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
         - uuid: 7cb46709b5164ab5906158164fdead93
           name: 'Firewall Pass Actions'
           type: DEPENDENT
-          key: 'opnsense.firewall.pass'
-          delay: '0'
+          key: opnsense.firewall.pass
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
@@ -316,6 +106,184 @@ zabbix_export:
               event_name: '{HOST.HOST}: Firewall pass actions increased significantly: {ITEM.LASTVALUE}'
               priority: INFO
               description: 'Firewall pass actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
+        - uuid: c702632342144c00b4937946bb852e85
+          name: 'Firewall Redirect Actions'
+          type: DEPENDENT
+          key: opnsense.firewall.rdr
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  for (var i = 0; i < input.length; i++) {
+                      if (input[i].label === "rdr") {
+                          return input[i].value;
+                      }
+                  }
+                  return 0;
+          master_item:
+            key: opnsense.firewall.stats
+          triggers:
+            - uuid: 69aa4a5bf4df4f78bd6643e2d1e29f99
+              expression: '(last(/OPNSENSE-BY-API/opnsense.firewall.rdr)-avg(/OPNSENSE-BY-API/opnsense.firewall.rdr,10m))/avg(/OPNSENSE-BY-API/opnsense.firewall.rdr,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
+              name: 'Significant increase in firewall redirect actions'
+              event_name: '{HOST.HOST}: Firewall redirect actions increased significantly: {ITEM.LASTVALUE}'
+              priority: INFO
+              description: 'Firewall redirect actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
+        - uuid: 37a8583901e14ffb9081d0ff9511216f
+          name: 'Get Firewall Statistics'
+          type: HTTP_AGENT
+          key: opnsense.firewall.stats
+          delay: 10s
+          history: 1d
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 5s
+          url: '{$BASEURL}/api/diagnostics/firewall/stats?group_by=action'
+        - uuid: 6d87b7459607448fbd6d2ec2fd44e1f3
+          name: 'Firmware Version'
+          type: DEPENDENT
+          key: opnsense.firmware.current
+          history: 30d
+          value_type: CHAR
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+            - type: JSONPATH
+              parameters:
+                - $.product.product_version
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value.split(''.'').slice(0, 2).join(''.'');'
+          master_item:
+            key: opnsense.firmware.status
+        - uuid: b590fde958314341ac4b951c34ba0456
+          name: 'Firmware Latest'
+          type: DEPENDENT
+          key: opnsense.firmware.latest
+          history: 30d
+          value_type: CHAR
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+            - type: JSONPATH
+              parameters:
+                - $.product.product_latest
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value.split(''.'').slice(0, 2).join(''.'');'
+          master_item:
+            key: opnsense.firmware.status
+        - uuid: 70e1f07d5cd041a0ba3b48d643a46139
+          name: 'Get Firmware Status'
+          type: HTTP_AGENT
+          key: opnsense.firmware.status
+          delay: 1h
+          history: 1d
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 10s
+          url: '{$BASEURL}/api/core/firmware/status'
+        - uuid: ff720ef670694acd834db3e8d69d2de0
+          name: 'Get Gateways Status'
+          type: HTTP_AGENT
+          key: opnsense.gateways.status
+          history: 1d
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 10s
+          url: '{$BASEURL}/api/routes/gateway/status'
+          triggers:
+            - uuid: 777c7080ef6e4f3aaaf3bdcfc949bfa4
+              expression: 'nodata(/OPNSENSE-BY-API/opnsense.gateways.status,3m)=1'
+              name: 'Indisponível via API'
+              event_name: '{HOST.HOST}: Indisponível via API'
+              priority: AVERAGE
+              description: 'Firewall became unreachable by http api'
+              manual_close: 'YES'
+        - uuid: 381ec8a82e15406a8e3d719577cca698
+          name: 'Get Interface Statistics'
+          type: HTTP_AGENT
+          key: opnsense.interface.statistics
+          history: 1d
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 5s
+          url: '{$BASEURL}/api/diagnostics/interface/get_interface_statistics'
+        - uuid: 9d9b53b496c14b8eb31138ccc7020beb
+          name: 'Get IPSec Tunnels'
+          type: HTTP_AGENT
+          key: opnsense.ipsec.tunnels
+          history: 1d
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 10s
+          url: '{$BASEURL}/api/ipsec/sessions/searchPhase1'
+        - uuid: 3066565299434e9b9dbfa7dfee6f9712
+          name: 'Get OpenVPN Statistics'
+          type: HTTP_AGENT
+          key: opnsense.openvpn.statistics
+          history: 1d
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 10s
+          url: '{$BASEURL}/api/openvpn/service/searchSessions'
+        - uuid: 419871d2614649dc87a088b2d60ba943
+          name: 'Get Services'
+          type: HTTP_AGENT
+          key: opnsense.service.get
+          history: 1d
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 5s
+          url: '{$BASEURL}/api/core/service/search'
         - uuid: cf1cb489a13c4646b5ed22ffde38970e
           name: 'CPU idle time'
           key: 'system.cpu.util[,idle]'
@@ -338,7 +306,6 @@ zabbix_export:
           key: vfs.fs.get
           history: '0'
           value_type: TEXT
-          trends: '0'
           description: 'The `vfs.fs.get` key acquires raw information set about the filesystems. Later to be extracted by preprocessing in dependent items.'
           tags:
             - tag: component
@@ -390,16 +357,13 @@ zabbix_export:
           name: 'Gateways Discovery'
           type: DEPENDENT
           key: opnsense.gateway.discovery
-          delay: '0'
           enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 48bde6b0e032459c8d5f558eb8f90cf7
               name: 'Gateway {#GWNAME} Address'
               type: DEPENDENT
               key: 'opnsense.gateway.get[{#GWNAME}, address]'
-              delay: '0'
               value_type: CHAR
-              trends: '0'
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
@@ -424,7 +388,6 @@ zabbix_export:
               name: 'Gateway {#GWNAME} Delay'
               type: DEPENDENT
               key: 'opnsense.gateway.get[{#GWNAME},delay]'
-              delay: '0'
               value_type: FLOAT
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
@@ -448,7 +411,6 @@ zabbix_export:
               name: 'Gateway {#GWNAME} Loss'
               type: DEPENDENT
               key: 'opnsense.gateway.get[{#GWNAME},loss]'
-              delay: '0'
               value_type: FLOAT
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
@@ -472,7 +434,6 @@ zabbix_export:
               name: 'Gateway {#GWNAME} Status'
               type: DEPENDENT
               key: 'opnsense.gateway.get[{#GWNAME},status]'
-              delay: '0'
               valuemap:
                 name: 'Gateway Status'
               preprocessing:
@@ -518,7 +479,6 @@ zabbix_export:
               name: 'Gateway {#GWNAME} Stddev'
               type: DEPENDENT
               key: 'opnsense.gateway.get[{#GWNAME},stddev]'
-              delay: '0'
               value_type: FLOAT
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
@@ -556,21 +516,18 @@ zabbix_export:
           name: 'Interfaces Discovery'
           type: DEPENDENT
           key: opnsense.if.discovery
-          delay: '0'
           filter:
             conditions:
               - macro: '{#IFNAME}'
                 value: lo0|openvpn|enc0|pfsync0|pflog0
                 operator: NOT_MATCHES_REGEX
-                formulaid: A
           enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 06c3fb36ef064a0697a6179ff92f873c
               name: 'Ingress traffic on interface {#IFALIAS}'
               type: DEPENDENT
               key: 'opnsense.interface.traffic.in[{#IFNAME}]'
-              delay: '0'
-              units: bps  # Changed from Bps to bps (bits per second)
+              units: bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
@@ -597,21 +554,16 @@ zabbix_export:
                       
                       return totalBytes;
                 - type: CHANGE_PER_SECOND
-                  parameters:
-                    - ''
-                - type: MULTIPLIER  # ADD THIS: Convert bytes to bits
+                - type: MULTIPLIER
                   parameters:
                     - '8'
               master_item:
-                key: 'opnsense.interface.statistics'
-
-            # EGRESS traffic - fixed with bits conversion  
+                key: opnsense.interface.statistics
             - uuid: cc0951c383eb44dc9797397e12459bcf
               name: 'Egress traffic on interface {#IFALIAS}'
               type: DEPENDENT
               key: 'opnsense.interface.traffic.out[{#IFNAME}]'
-              delay: '0'
-              units: bps  # Changed from Bps to bps (bits per second)
+              units: bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
@@ -638,15 +590,13 @@ zabbix_export:
                       
                       return totalBytes;
                 - type: CHANGE_PER_SECOND
-                  parameters:
-                    - ''
-                - type: MULTIPLIER  # ADD THIS: Convert bytes to bits
+                - type: MULTIPLIER
                   parameters:
                     - '8'
               master_item:
-                key: 'opnsense.interface.statistics'
+                key: opnsense.interface.statistics
           master_item:
-            key: 'opnsense.interface.statistics'
+            key: opnsense.interface.statistics
           preprocessing:
             - type: JAVASCRIPT
               parameters:
@@ -685,14 +635,12 @@ zabbix_export:
           name: 'IPSec Discovery'
           type: DEPENDENT
           key: 'opnsense.ipsec.discovery[instances]'
-          delay: '0'
           enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 5dfbe85269984de8a8f8767c633f1f40
               name: 'IPSec Tunnel {#IPSECDESC} ingress traffic'
               type: DEPENDENT
               key: 'openvpn.ipsec.in[{#IPSECDESC}]'
-              delay: '0'
               units: Bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
@@ -711,15 +659,12 @@ zabbix_export:
                       }
                       return bytes_count;
                 - type: CHANGE_PER_SECOND
-                  parameters:
-                    - ''
               master_item:
                 key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
             - uuid: 5b2e0ac751f34609aea6cc62c23e03cc
               name: 'IPSec Tunnel {#IPSECDESC} egress traffic'
               type: DEPENDENT
               key: 'openvpn.ipsec.out[{#IPSECDESC}]'
-              delay: '0'
               units: Bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
@@ -738,15 +683,12 @@ zabbix_export:
                       }
                       return bytes_count;
                 - type: CHANGE_PER_SECOND
-                  parameters:
-                    - ''
               master_item:
                 key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
             - uuid: 794aab3de9184cf884bc33ec9749aa8d
               name: 'IPSec Tunnel {#IPSECDESC} Phase2 status'
               type: DEPENDENT
               key: 'openvpn.ipsec.p2status[{#IPSECDESC}]'
-              delay: '0'
               valuemap:
                 name: 'IPSec Tunnel Status'
               preprocessing:
@@ -782,7 +724,6 @@ zabbix_export:
               key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
               history: 1d
               value_type: TEXT
-              trends: '0'
               authtype: BASIC
               username: '{$APIKEY}'
               password: '{$APISECRET}'
@@ -802,7 +743,6 @@ zabbix_export:
               name: 'IPSec Tunnel {#IPSECDESC} Status'
               type: DEPENDENT
               key: 'opnsense.ipsec.status[{#IPSECDESC}]'
-              delay: '0'
               valuemap:
                 name: 'IPSec Tunnel Status'
               preprocessing:
@@ -851,14 +791,12 @@ zabbix_export:
           name: 'OpenVPN Discovery'
           type: DEPENDENT
           key: 'opnsense.openvpn.discovery[instances]'
-          delay: '0'
           enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: 18acc75effc24cc682de46d10c71cab5
               name: 'OpenVPN {#VPNROLE} {#VPNDESC} ingress traffic'
               type: DEPENDENT
               key: 'opnsense.openvpn.in[{#VPNDESC}]'
-              delay: '0'
               units: Bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
@@ -878,15 +816,12 @@ zabbix_export:
                           }
                       }
                 - type: CHANGE_PER_SECOND
-                  parameters:
-                    - ''
               master_item:
                 key: opnsense.openvpn.statistics
             - uuid: d57d89177f2a40cb928755f963c6f717
               name: 'OpenVPN {#VPNROLE} {#VPNDESC} egress traffic'
               type: DEPENDENT
               key: 'opnsense.openvpn.out[{#VPNDESC}]'
-              delay: '0'
               units: Bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
@@ -906,15 +841,12 @@ zabbix_export:
                           }
                       }
                 - type: CHANGE_PER_SECOND
-                  parameters:
-                    - ''
               master_item:
                 key: opnsense.openvpn.statistics
             - uuid: 1e2738e93ccb4cc580017824e2736691
               name: 'OpenVPN {#VPNROLE} {#VPNDESC} status'
               type: DEPENDENT
               key: 'opnsense.openvpn.status[{#VPNDESC}]'
-              delay: '0'
               valuemap:
                 name: 'OpenVPN Status'
               preprocessing:
@@ -988,20 +920,17 @@ zabbix_export:
           name: 'Services Discovery'
           type: DEPENDENT
           key: opnsense.service.discovery
-          delay: '0'
           filter:
             conditions:
               - macro: '{#SVCNAME}'
                 value: '^(?:dpinger.*|iperf|dhcpd6)$'
                 operator: NOT_MATCHES_REGEX
-                formulaid: A
           enabled_lifetime_type: DISABLE_NEVER
           item_prototypes:
             - uuid: a8a28b1888c548c1995424170a67280e
               name: 'Service {#SVCNAME} Status'
               type: DEPENDENT
               key: 'opnsense.service.status[{#SVCNAME}]'
-              delay: '0'
               valuemap:
                 name: 'Service Status'
               preprocessing:
