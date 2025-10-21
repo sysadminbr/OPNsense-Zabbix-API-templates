@@ -641,7 +641,7 @@ zabbix_export:
               name: 'IPSec Tunnel {#IPSECDESC} ingress traffic'
               type: DEPENDENT
               key: 'openvpn.ipsec.in[{#IPSECDESC}]'
-              units: Bps
+              units: bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
@@ -665,7 +665,7 @@ zabbix_export:
               name: 'IPSec Tunnel {#IPSECDESC} egress traffic'
               type: DEPENDENT
               key: 'openvpn.ipsec.out[{#IPSECDESC}]'
-              units: Bps
+              units: bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
@@ -797,7 +797,7 @@ zabbix_export:
               name: 'OpenVPN {#VPNROLE} {#VPNDESC} ingress traffic'
               type: DEPENDENT
               key: 'opnsense.openvpn.in[{#VPNDESC}]'
-              units: bps
+              units: Bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
@@ -816,16 +816,13 @@ zabbix_export:
                           }
                       }
                 - type: CHANGE_PER_SECOND
-                - type: MULTIPLIER
-                  parameters:
-                    - '8'
               master_item:
                 key: opnsense.openvpn.statistics
             - uuid: d57d89177f2a40cb928755f963c6f717
               name: 'OpenVPN {#VPNROLE} {#VPNDESC} egress traffic'
               type: DEPENDENT
               key: 'opnsense.openvpn.out[{#VPNDESC}]'
-              units: bps
+              units: Bps
               preprocessing:
                 - type: CHECK_NOT_SUPPORTED
                   parameters:
@@ -844,9 +841,6 @@ zabbix_export:
                           }
                       }
                 - type: CHANGE_PER_SECOND
-                - type: MULTIPLIER
-                  parameters:
-                    - '8'
               master_item:
                 key: opnsense.openvpn.statistics
             - uuid: 1e2738e93ccb4cc580017824e2736691
