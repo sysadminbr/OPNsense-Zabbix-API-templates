@@ -284,6 +284,24 @@ zabbix_export:
                 - '-1'
           timeout: 5s
           url: '{$BASEURL}/api/core/service/search'
+        - uuid: 9ab4f75651d348909b7576690d8cfd9f
+          name: 'Get Wireguard Status'
+          type: HTTP_AGENT
+          key: opnsense.wireguard.status
+          history: 1h
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 10s
+          url: '{$BASEURL}/api/wireguard/service/show'
+          tags:
+            - tag: component
+              value: raw
         - uuid: cf1cb489a13c4646b5ed22ffde38970e
           name: 'CPU idle time'
           key: 'system.cpu.util[,idle]'
@@ -973,6 +991,206 @@ zabbix_export:
                       });
                   }
                   return JSON.stringify(output);
+        - uuid: 3c0e487742714df4a24247f41b1e30bb
+          name: 'Wireguard Discovery'
+          type: DEPENDENT
+          key: opnsense.wireguard.discovery
+          enabled_lifetime_type: DISABLE_NEVER
+          description: 'Discover active Wireguard instances and peers'
+          item_prototypes:
+            - uuid: 4ca9e7a3bb624e198de569000cd3ee78
+              name: 'Wireguard {#WGTUNNELNAME}: Peer {#WGNAME}: Incoming network traffic'
+              type: DEPENDENT
+              key: 'opnsense.wireguard.in[{#WGTUNNELNAME}-{#WGNAME}]'
+              units: bps
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - '-1'
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                        if("{#WGNAME}" == input["rows"][i]["name"] ){
+                          return input["rows"][i]["transfer-rx"];
+                        }
+                      }
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              master_item:
+                key: opnsense.wireguard.status
+              tags:
+                - tag: component
+                  value: vpn
+                - tag: instance
+                  value: '{#WGTUNNELNAME}'
+                - tag: peer
+                  value: '{#WGNAME}'
+            - uuid: 761c2bea538b477eb892c3dd8226bd01
+              name: 'Wireguard {#WGTUNNELNAME}: Peer {#WGNAME} latest handshake age'
+              type: DEPENDENT
+              key: 'opnsense.wireguard.latesthandshake[{#WGTUNNELNAME}-{#WGNAME}]'
+              units: s
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - '-1'
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                        if("{#WGNAME}" == input["rows"][i]["name"] ){
+                          return input["rows"][i]["latest-handshake-age"];
+                        }
+                      }
+              master_item:
+                key: opnsense.wireguard.status
+              tags:
+                - tag: component
+                  value: vpn
+                - tag: instance
+                  value: '{#WGTUNNELNAME}'
+                - tag: peer
+                  value: '{#WGNAME}'
+              trigger_prototypes:
+                - uuid: f4f5b6d2f687428e9d97a98c6bbd5329
+                  expression: 'last(/OPNSENSE-BY-API/opnsense.wireguard.latesthandshake[{#WGTUNNELNAME}-{#WGNAME}])>{$AGENT.TIMEOUT}'
+                  name: 'Wireguard Tunnel {#WGTUNNELNAME} to {#WGNAME} now new handshake'
+                  event_name: 'Wireguard Tunnel {#WGTUNNELNAME} to {#WGNAME} now new handshake (for >{$AGENT.TIMEOUT})'
+                  priority: AVERAGE
+                  description: 'Latest handshake older than {$AGENT.TIMEOUT}'
+                  tags:
+                    - tag: component
+                      value: vpn
+                    - tag: instance
+                      value: '{#WGTUNNELNAME}'
+                    - tag: peer
+                      value: '{#WGNAME}'
+            - uuid: 257d78f39bac4023a8ac7b01d9fcf92e
+              name: 'Wireguard {#WGTUNNELNAME}: Peer {#WGNAME}: Outgoing network traffic'
+              type: DEPENDENT
+              key: 'opnsense.wireguard.out[{#WGTUNNELNAME}-{#WGNAME}]'
+              units: bps
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - '-1'
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                        if("{#WGNAME}" == input["rows"][i]["name"] ){
+                          return input["rows"][i]["transfer-tx"];
+                        }
+                      }
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              master_item:
+                key: opnsense.wireguard.status
+              tags:
+                - tag: component
+                  value: vpn
+                - tag: instance
+                  value: '{#WGTUNNELNAME}'
+                - tag: peer
+                  value: '{#WGNAME}'
+            - uuid: 3bd06d98432f4bceb054c3d85a2b5d40
+              name: 'Wireguard {#WGTUNNELNAME}: Peer {#WGNAME} status'
+              type: DEPENDENT
+              key: 'opnsense.wireguard.status[{#WGTUNNELNAME}-{#WGNAME}]'
+              valuemap:
+                name: 'Wireguard Status'
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - '-1'
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                          if("{#WGNAME}" == input["rows"][i]["name"] ){
+                              switch(input["rows"][i]["peer-status"]){
+                                  case "online":
+                                      return 0;
+                                      break;
+                                  case "offline":
+                                      return 1;
+                                      break;
+                                  case "stale":
+                                      return 2;
+                                      break;
+                                  default:
+                                      return 3;
+                              }
+                          }
+                      }
+              master_item:
+                key: opnsense.wireguard.status
+              tags:
+                - tag: component
+                  value: vpn
+                - tag: instance
+                  value: '{#WGTUNNELNAME}'
+                - tag: peer
+                  value: '{#WGNAME}'
+              trigger_prototypes:
+                - uuid: 791e1896bf29425680105a9c6589b2e1
+                  expression: 'min(/OPNSENSE-BY-API/opnsense.wireguard.status[{#WGTUNNELNAME}-{#WGNAME}],#5)>0'
+                  name: 'Wireguard Tunnel {#WGTUNNELNAME} to {#WGNAME} not connected'
+                  priority: AVERAGE
+                  description: 'None of the last 5 status reports were online (0)'
+                  tags:
+                    - tag: component
+                      value: vpn
+                    - tag: instance
+                      value: '{#WGTUNNELNAME}'
+                    - tag: peer
+                      value: '{#WGNAME}'
+          graph_prototypes:
+            - uuid: 63281c2a97724a8ebba0dbca405eb8dc
+              name: 'Wireguard {#WGTUNNELNAME} Peer {#WGNAME}: Network traffic'
+              ymin_type_1: FIXED
+              graph_items:
+                - color: 00AA00
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'opnsense.wireguard.in[{#WGTUNNELNAME}-{#WGNAME}]'
+                - sortorder: '1'
+                  color: 3333FF
+                  calc_fnc: ALL
+                  item:
+                    host: OPNSENSE-BY-API
+                    key: 'opnsense.wireguard.out[{#WGTUNNELNAME}-{#WGNAME}]'
+          master_item:
+            key: opnsense.wireguard.status
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  var output = { "data": new Array() };
+                  for (var i in input["rows"]) {
+                    if (input["rows"][i]["type"] === "peer") {
+                      output["data"].push({
+                        "{#WGNAME}": input["rows"][i]["name"],
+                        "{#WGHANDSHAKE}": input["rows"][i]["latest-handshake-age"],
+                        "{#WGSTATUS}": input["rows"][i]["peer-status"],
+                        "{#WGRX}": input["rows"][i]["transfer-rx"],
+                        "{#WGTX}": input["rows"][i]["transfer-tx"],
+                        "{#WGTUNNELNAME}": input["rows"][i]["ifname"],
+                      });
+                    };
+                  };
+                  return JSON.stringify(output);
         - uuid: 125a971b43704ec98782db3743d51033
           name: 'Mounted filesystem discovery'
           type: DEPENDENT
@@ -1272,6 +1490,11 @@ zabbix_export:
                 - operator: LIKE
                   value: Inodes
                   discover: NO_DISCOVER
+      tags:
+        - tag: class
+          value: software
+        - tag: target
+          value: opnsense
       macros:
         - macro: '{$AGENT.TIMEOUT}'
           value: '300'
@@ -1357,6 +1580,15 @@ zabbix_export:
             - value: '1'
               newvalue: running
             - newvalue: stopped
+        - uuid: 8b9354678f004bcd8c4c43820663d109
+          name: 'Wireguard Status'
+          mappings:
+            - value: '0'
+              newvalue: online
+            - value: '1'
+              newvalue: offline
+            - value: '2'
+              newvalue: stale
         - uuid: 3b87754d623c49ae9eeb9c049f36fba4
           name: zabbix.host.available
           mappings:
