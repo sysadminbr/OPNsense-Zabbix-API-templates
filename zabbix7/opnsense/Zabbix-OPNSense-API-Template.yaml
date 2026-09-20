@@ -5,8 +5,8 @@ zabbix_export:
       name: 'Templates/Network devices'
   templates:
     - uuid: c856c5fdba7e44d9a1a287b0ff94c433
-      template: OPNSENSE-BY-API
-      name: OPNSENSE-BY-API
+      template: 'JOBWAY OPNsense API'
+      name: 'JOBWAY OPNsense API'
       description: |
         Zabbix Custom Templates from https://github.com/sysadminbr/zabbix-templates
         
@@ -74,9 +74,10 @@ zabbix_export:
             key: opnsense.firewall.stats
           triggers:
             - uuid: d641f23d13e14613af4a3a0e6ce782c9
-              expression: '(last(/OPNSENSE-BY-API/opnsense.firewall.block)-avg(/OPNSENSE-BY-API/opnsense.firewall.block,10m))/avg(/OPNSENSE-BY-API/opnsense.firewall.block,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
+              expression: '(last(/JOBWAY OPNsense API/opnsense.firewall.block)-avg(/JOBWAY OPNsense API/opnsense.firewall.block,10m))/avg(/JOBWAY OPNsense API/opnsense.firewall.block,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
               name: 'Significant increase in firewall block actions'
               event_name: '{HOST.HOST}: Firewall block actions increased significantly: {ITEM.LASTVALUE}'
+              status: DISABLED
               priority: WARNING
               description: 'Firewall block actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
         - uuid: 7cb46709b5164ab5906158164fdead93
@@ -101,9 +102,10 @@ zabbix_export:
             key: opnsense.firewall.stats
           triggers:
             - uuid: be5a04d03e334c8d94bf6e9592edd4cd
-              expression: '(last(/OPNSENSE-BY-API/opnsense.firewall.pass)-avg(/OPNSENSE-BY-API/opnsense.firewall.pass,10m))/avg(/OPNSENSE-BY-API/opnsense.firewall.pass,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
+              expression: '(last(/JOBWAY OPNsense API/opnsense.firewall.pass)-avg(/JOBWAY OPNsense API/opnsense.firewall.pass,10m))/avg(/JOBWAY OPNsense API/opnsense.firewall.pass,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
               name: 'Significant increase in firewall pass actions'
               event_name: '{HOST.HOST}: Firewall pass actions increased significantly: {ITEM.LASTVALUE}'
+              status: DISABLED
               priority: INFO
               description: 'Firewall pass actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
         - uuid: c702632342144c00b4937946bb852e85
@@ -128,9 +130,10 @@ zabbix_export:
             key: opnsense.firewall.stats
           triggers:
             - uuid: 69aa4a5bf4df4f78bd6643e2d1e29f99
-              expression: '(last(/OPNSENSE-BY-API/opnsense.firewall.rdr)-avg(/OPNSENSE-BY-API/opnsense.firewall.rdr,10m))/avg(/OPNSENSE-BY-API/opnsense.firewall.rdr,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
+              expression: '(last(/JOBWAY OPNsense API/opnsense.firewall.rdr)-avg(/JOBWAY OPNsense API/opnsense.firewall.rdr,10m))/avg(/JOBWAY OPNsense API/opnsense.firewall.rdr,10m)*100>{$FIREWALL.CHANGE.THRESHOLD}'
               name: 'Significant increase in firewall redirect actions'
               event_name: '{HOST.HOST}: Firewall redirect actions increased significantly: {ITEM.LASTVALUE}'
+              status: DISABLED
               priority: INFO
               description: 'Firewall redirect actions increased by more than {$FIREWALL.CHANGE.THRESHOLD}% compared to 10-minute average'
         - uuid: 37a8583901e14ffb9081d0ff9511216f
@@ -218,7 +221,7 @@ zabbix_export:
           url: '{$BASEURL}/api/routes/gateway/status'
           triggers:
             - uuid: 777c7080ef6e4f3aaaf3bdcfc949bfa4
-              expression: 'nodata(/OPNSENSE-BY-API/opnsense.gateways.status,3m)=1'
+              expression: 'nodata(/JOBWAY OPNsense API/opnsense.gateways.status,10m)=1'
               name: 'Indisponível via API'
               event_name: '{HOST.HOST}: Indisponível via API'
               priority: AVERAGE
@@ -284,6 +287,21 @@ zabbix_export:
                 - '-1'
           timeout: 5s
           url: '{$BASEURL}/api/core/service/search'
+        - uuid: 3b3db64bc9b14dbfb8992c4a65716287
+          name: 'Get Wireguard Statistics'
+          type: HTTP_AGENT
+          key: opnsense.wireguard.statistics
+          history: 1d
+          value_type: TEXT
+          authtype: BASIC
+          username: '{$APIKEY}'
+          password: '{$APISECRET}'
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+          timeout: 10s
+          url: '{$BASEURL}/api/wireguard/service/show'
         - uuid: cf1cb489a13c4646b5ed22ffde38970e
           name: 'CPU idle time'
           key: 'system.cpu.util[,idle]'
@@ -343,7 +361,7 @@ zabbix_export:
             name: zabbix.host.available
           triggers:
             - uuid: 4f12616b5f8e45f68e12744e9d4cc4f8
-              expression: 'max(/OPNSENSE-BY-API/zabbix[host,agent,available],{$AGENT.TIMEOUT})=0'
+              expression: 'max(/JOBWAY OPNsense API/zabbix[host,agent,available],{$AGENT.TIMEOUT})=0'
               name: 'Agente indisponível'
               event_name: 'Agente Zabbix indisponível (for {$AGENT.TIMEOUT})'
               priority: HIGH
@@ -381,9 +399,12 @@ zabbix_export:
                 key: opnsense.gateways.status
               trigger_prototypes:
                 - uuid: bac7234301624efc90ec590159b97dbd
-                  expression: 'change(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME}, address])=1'
+                  expression: 'change(/JOBWAY OPNsense API/opnsense.gateway.get[{#GWNAME}, address])=1'
                   name: '{HOST.HOST}: Gateway {#GWNAME} address changed'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: WARNING
+                  manual_close: 'YES'
             - uuid: 8781228217fd4311beaf28e8ecc74788
               name: 'Gateway {#GWNAME} Delay'
               type: DEPENDENT
@@ -460,21 +481,31 @@ zabbix_export:
                   value: Gateways
               trigger_prototypes:
                 - uuid: 4c9c0274c10b488891f858a97769b0a7
-                  expression: 'avg(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME},status],1m)=4'
+                  expression: 'avg(/JOBWAY OPNsense API/opnsense.gateway.get[{#GWNAME},status],10m)=4'
                   name: '{HOST.HOST}: Gateway {#GWNAME} is down'
-                  priority: WARNING
+                  priority: AVERAGE
+                  manual_close: 'YES'
                 - uuid: cab4fecf581d4846a28d9e22cf01a1ac
-                  expression: 'avg(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME},status],1m)=2'
+                  expression: 'avg(/JOBWAY OPNsense API/opnsense.gateway.get[{#GWNAME},status],1m)=2'
                   name: '{HOST.HOST}: Gateway {#GWNAME} with delay'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: WARNING
+                  manual_close: 'YES'
                 - uuid: 36eda2c369414033a2adeba2068416e9
-                  expression: 'avg(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME},status],1m)=3'
+                  expression: 'avg(/JOBWAY OPNsense API/opnsense.gateway.get[{#GWNAME},status],1m)=3'
                   name: '{HOST.HOST}: Gateway {#GWNAME} with delay and loss'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: WARNING
+                  manual_close: 'YES'
                 - uuid: cbf7c5cf056641d6a4fd164a146d868f
-                  expression: 'avg(/OPNSENSE-BY-API/opnsense.gateway.get[{#GWNAME},status],1m)=1'
+                  expression: 'avg(/JOBWAY OPNsense API/opnsense.gateway.get[{#GWNAME},status],1m)=1'
                   name: '{HOST.HOST}: Gateway {#GWNAME} with packet loss'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: WARNING
+                  manual_close: 'YES'
             - uuid: fcdd1f2d9c674f1b9fb7e6e368f88ba8
               name: 'Gateway {#GWNAME} Stddev'
               type: DEPENDENT
@@ -713,7 +744,7 @@ zabbix_export:
                 key: 'openvpn.ipsec.stats[{#IPSECDESC}]'
               trigger_prototypes:
                 - uuid: a894f7cb387748faa2357394ce54da97
-                  expression: 'avg(/OPNSENSE-BY-API/openvpn.ipsec.p2status[{#IPSECDESC}],3m)<>0'
+                  expression: 'avg(/JOBWAY OPNsense API/openvpn.ipsec.p2status[{#IPSECDESC}],3m)<>0'
                   name: '{HOST.HOST}: IPSec Tunnel {#IPSECDESC} Phase2 not connected'
                   status: DISABLED
                   discover: NO_DISCOVER
@@ -765,7 +796,7 @@ zabbix_export:
                 key: opnsense.ipsec.tunnels
               trigger_prototypes:
                 - uuid: 1cd3354ce6c6400aaf8b4c96357f674d
-                  expression: 'avg(/OPNSENSE-BY-API/opnsense.ipsec.status[{#IPSECDESC}],3m)<>0'
+                  expression: 'avg(/JOBWAY OPNsense API/opnsense.ipsec.status[{#IPSECDESC}],3m)<>0'
                   name: '{HOST.HOST}: IPSec Tunnel {#IPSECDESC} not connected'
                   status: DISABLED
                   discover: NO_DISCOVER
@@ -896,8 +927,10 @@ zabbix_export:
                 key: opnsense.openvpn.statistics
               trigger_prototypes:
                 - uuid: 24c4c795345d464795b840fd26559db2
-                  expression: 'min(/OPNSENSE-BY-API/opnsense.openvpn.status[{#VPNDESC}],3m)=2'
+                  expression: 'min(/JOBWAY OPNsense API/opnsense.openvpn.status[{#VPNDESC}],3m)=2'
                   name: '{HOST.HOST}: OpenVPN {#VPNROLE} {#VPNDESC} Disconnected'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: AVERAGE
                   tags:
                     - tag: component
@@ -956,7 +989,7 @@ zabbix_export:
                 key: opnsense.service.get
               trigger_prototypes:
                 - uuid: 12379ec34f674c07a37f2307744727d5
-                  expression: 'avg(/OPNSENSE-BY-API/opnsense.service.status[{#SVCNAME}], 3m)<>1'
+                  expression: 'avg(/JOBWAY OPNsense API/opnsense.service.status[{#SVCNAME}], 3m)<>1'
                   name: '{HOST.HOST}: Service {#SVCNAME} is stopped'
                   priority: WARNING
           master_item:
@@ -971,6 +1004,75 @@ zabbix_export:
                       output["data"].push({
                           "{#SVCNAME}": input["rows"][i]["id"]
                       });
+                  }
+                  return JSON.stringify(output);
+        - uuid: 370f7496ed6f45b99ce9f34c184a1db9
+          name: 'Wireguard Peer Discovery'
+          type: DEPENDENT
+          key: 'opnsense.wireguard.discovery[peers]'
+          enabled_lifetime_type: DISABLE_NEVER
+          item_prototypes:
+            - uuid: 66f2db4c3a2b46f48f3693efaf376c61
+              name: 'Wireguard Peer {#PEERNAME} status'
+              type: DEPENDENT
+              key: 'opnsense.wireguard.status[{#PEERNAME}]'
+              valuemap:
+                name: 'Wireguard Peer Status'
+              preprocessing:
+                - type: CHECK_NOT_SUPPORTED
+                  parameters:
+                    - '-1'
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var input = JSON.parse(value);
+                      for(var i in input["rows"]){
+                      	if(input["rows"][i]["type"] == "peer"){
+                              if("{#PEERNAME}" == input["rows"][i]["name"] ){
+                                  switch(input["rows"][i]["peer-status"]){
+                                      case "online":
+                                          return 1;
+                                          break;
+                                      case "offline":
+                                          return 0;
+                                          break;
+                                      default:
+                                          return 2;
+                                  }
+                              }
+                          }
+                      }
+              master_item:
+                key: opnsense.wireguard.statistics
+              trigger_prototypes:
+                - uuid: 48e147745579471bb8f283719a0f714a
+                  expression: 'max(/JOBWAY OPNsense API/opnsense.wireguard.status[{#PEERNAME}], 5m)=0'
+                  name: '{HOST.HOST}: Wireguard {#PEERNAME} Disconnected'
+                  priority: HIGH
+                  manual_close: 'YES'
+                  tags:
+                    - tag: component
+                      value: vpn
+                    - tag: equipment
+                      value: firewall
+                    - tag: product
+                      value: opnsense
+          master_item:
+            key: opnsense.wireguard.statistics
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var input = JSON.parse(value);
+                  var output = {"data": new Array()};
+                  for(var i in input["rows"]) {
+                  	if(input["rows"][i]["type"] == "peer"){
+                      		output["data"].push({
+                      		"{#PEERNAME}": input["rows"][i]["name"],
+                      		"{#PEERSTATUS}": input["rows"][i]["peer-status"]
+                  	    });
+                      }
+                  
                   }
                   return JSON.stringify(output);
         - uuid: 125a971b43704ec98782db3743d51033
@@ -1014,10 +1116,12 @@ zabbix_export:
                   value: '{#FSTYPE}'
               trigger_prototypes:
                 - uuid: b98bc2ae0213490fa0320b040f7a53c7
-                  expression: 'min(/OPNSENSE-BY-API/vfs.fs.dependent.inode[{#FSNAME},pfree],5m)<{$VFS.FS.INODE.PFREE.MIN.CRIT:"{#FSNAME}"}'
+                  expression: 'min(/JOBWAY OPNsense API/vfs.fs.dependent.inode[{#FSNAME},pfree],5m)<{$VFS.FS.INODE.PFREE.MIN.CRIT:"{#FSNAME}"}'
                   name: 'FreeBSD: FS [{#FSNAME}]: Running out of free inodes'
                   event_name: 'FreeBSD: {#FSNAME}: Running out of free inodes (free < {$VFS.FS.INODE.PFREE.MIN.CRIT:"{#FSNAME}"}%)'
                   opdata: 'Free inodes: {ITEM.LASTVALUE1}'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: AVERAGE
                   description: 'Disk writing may fail if index nodes are exhausted, leading to error messages like "No space left on device" or "Disk is full", despite available free space.'
                   tags:
@@ -1026,15 +1130,17 @@ zabbix_export:
                     - tag: scope
                       value: performance
                 - uuid: 1a54747193a74705817eb8e758d97756
-                  expression: 'min(/OPNSENSE-BY-API/vfs.fs.dependent.inode[{#FSNAME},pfree],5m)<{$VFS.FS.INODE.PFREE.MIN.WARN:"{#FSNAME}"}'
+                  expression: 'min(/JOBWAY OPNsense API/vfs.fs.dependent.inode[{#FSNAME},pfree],5m)<{$VFS.FS.INODE.PFREE.MIN.WARN:"{#FSNAME}"}'
                   name: 'FreeBSD: FS [{#FSNAME}]: Running out of free inodes'
                   event_name: 'FreeBSD: FS [{#FSNAME}]: Running out of free inodes (free < {$VFS.FS.INODE.PFREE.MIN.WARN:"{#FSNAME}"}%)'
                   opdata: 'Free inodes: {ITEM.LASTVALUE1}'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: WARNING
                   description: 'Disk writing may fail if index nodes are exhausted, leading to error messages like "No space left on device" or "Disk is full", despite available free space.'
                   dependencies:
                     - name: 'FreeBSD: FS [{#FSNAME}]: Running out of free inodes'
-                      expression: 'min(/OPNSENSE-BY-API/vfs.fs.dependent.inode[{#FSNAME},pfree],5m)<{$VFS.FS.INODE.PFREE.MIN.CRIT:"{#FSNAME}"}'
+                      expression: 'min(/JOBWAY OPNsense API/vfs.fs.dependent.inode[{#FSNAME},pfree],5m)<{$VFS.FS.INODE.PFREE.MIN.CRIT:"{#FSNAME}"}'
                   tags:
                     - tag: scope
                       value: capacity
@@ -1104,10 +1210,12 @@ zabbix_export:
                   value: '{#FSTYPE}'
               trigger_prototypes:
                 - uuid: 247c3c11ea784c449c6906dbc56a000a
-                  expression: 'min(/OPNSENSE-BY-API/vfs.fs.dependent.size[{#FSNAME},pused],5m)>{$VFS.FS.PUSED.MAX.CRIT:"{#FSNAME}"}'
+                  expression: 'min(/JOBWAY OPNsense API/vfs.fs.dependent.size[{#FSNAME},pused],5m)>{$VFS.FS.PUSED.MAX.CRIT:"{#FSNAME}"}'
                   name: 'FreeBSD: FS [{#FSNAME}]: Space is critically low'
                   event_name: 'FreeBSD: FS [{#FSNAME}]: Space is critically low (used > {$VFS.FS.PUSED.MAX.CRIT:"{#FSNAME}"}%, total {{?last(//vfs.fs.dependent.size[{#FSNAME},total])/1024/1024/1024}.fmtnum(1)}GB)'
                   opdata: 'Space used: {{ITEM.LASTVALUE1}.fmtnum(1)}%'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: AVERAGE
                   description: |
                     The volume's space usage exceeds the `{$VFS.FS.PUSED.MAX.CRIT:"{#FSNAME}"}%` limit.
@@ -1120,10 +1228,12 @@ zabbix_export:
                     - tag: scope
                       value: capacity
                 - uuid: 29f9310276e947ff853cf6e581b27c0c
-                  expression: 'min(/OPNSENSE-BY-API/vfs.fs.dependent.size[{#FSNAME},pused],5m)>{$VFS.FS.PUSED.MAX.WARN:"{#FSNAME}"}'
+                  expression: 'min(/JOBWAY OPNsense API/vfs.fs.dependent.size[{#FSNAME},pused],5m)>{$VFS.FS.PUSED.MAX.WARN:"{#FSNAME}"}'
                   name: 'FreeBSD: FS [{#FSNAME}]: Space is low'
                   event_name: 'FreeBSD: FS [{#FSNAME}]: Space is low (used > {$VFS.FS.PUSED.MAX.WARN:"{#FSNAME}"}%, total {{?last(//vfs.fs.dependent.size[{#FSNAME},total])/1024/1024/1024}.fmtnum(1)}GB)'
                   opdata: 'Space used: {{ITEM.LASTVALUE1}.fmtnum(1)}%'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: WARNING
                   description: |
                     The volume's space usage exceeds the `{$VFS.FS.PUSED.MAX.WARN:"{#FSNAME}"}%` limit.
@@ -1132,7 +1242,7 @@ zabbix_export:
                   manual_close: 'YES'
                   dependencies:
                     - name: 'FreeBSD: FS [{#FSNAME}]: Space is critically low'
-                      expression: 'min(/OPNSENSE-BY-API/vfs.fs.dependent.size[{#FSNAME},pused],5m)>{$VFS.FS.PUSED.MAX.CRIT:"{#FSNAME}"}'
+                      expression: 'min(/JOBWAY OPNsense API/vfs.fs.dependent.size[{#FSNAME},pused],5m)>{$VFS.FS.PUSED.MAX.CRIT:"{#FSNAME}"}'
                   tags:
                     - tag: scope
                       value: availability
@@ -1225,10 +1335,12 @@ zabbix_export:
                   value: '{#FSTYPE}'
               trigger_prototypes:
                 - uuid: 4eb078193d564f0bac614afe75ae96c7
-                  expression: 'last(/OPNSENSE-BY-API/vfs.fs.dependent[{#FSNAME},readonly],#2)=0 and last(/OPNSENSE-BY-API/vfs.fs.dependent[{#FSNAME},readonly])=1'
+                  expression: 'last(/JOBWAY OPNsense API/vfs.fs.dependent[{#FSNAME},readonly],#2)=0 and last(/JOBWAY OPNsense API/vfs.fs.dependent[{#FSNAME},readonly])=1'
                   recovery_mode: RECOVERY_EXPRESSION
-                  recovery_expression: 'last(/OPNSENSE-BY-API/vfs.fs.dependent[{#FSNAME},readonly])=0'
+                  recovery_expression: 'last(/JOBWAY OPNsense API/vfs.fs.dependent[{#FSNAME},readonly])=0'
                   name: 'FreeBSD: FS [{#FSNAME}]: Filesystem has become read-only'
+                  status: DISABLED
+                  discover: NO_DISCOVER
                   priority: AVERAGE
                   description: 'The filesystem has become read-only, possibly due to an I/O error. Available only for Zabbix agents 6.4 and higher.'
                   manual_close: 'YES'
@@ -1357,6 +1469,15 @@ zabbix_export:
             - value: '1'
               newvalue: running
             - newvalue: stopped
+        - uuid: 01b0ef6a64d043ff88620df02ad41fe8
+          name: 'Wireguard Peer Status'
+          mappings:
+            - value: '1'
+              newvalue: Online
+            - value: '0'
+              newvalue: Offline
+            - value: '2'
+              newvalue: Unknown
         - uuid: 3b87754d623c49ae9eeb9c049f36fba4
           name: zabbix.host.available
           mappings:
@@ -1368,7 +1489,7 @@ zabbix_export:
               newvalue: Desconhecido
   triggers:
     - uuid: 65237821f48d491da7d84ab8c5d20217
-      expression: 'last(/OPNSENSE-BY-API/opnsense.firmware.current) <> last(/OPNSENSE-BY-API/opnsense.firmware.latest)'
+      expression: 'last(/JOBWAY OPNsense API/opnsense.firmware.current) <> last(/JOBWAY OPNsense API/opnsense.firmware.latest)'
       name: 'Firmware disponível'
       event_name: '{HOST.HOST}: Firmware disponível'
       priority: INFO
